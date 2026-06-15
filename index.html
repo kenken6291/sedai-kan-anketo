@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>世代間アンケート：これ、どう思う？</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════
+   Design tokens
+═══════════════════════ */
+:root{
+  --bg:#F7F5F2;--surface:#fff;--border:#E2DDD8;
+  --ink:#1A1714;--ink-mute:#7A7370;
+  --accent:#E05C3A;--accent2:#3A7BE0;
+  --green:#2BAB6F;--purple:#9B59D0;
+  --radius:12px;--shadow:0 2px 14px rgba(0,0,0,.08);
+  --font:'Hiragino Kaku Gothic ProN','BIZ UDGothic',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);min-height:100vh;line-height:1.6}
+button{font-family:var(--font)}
+
+/* ── Header ── */
+header{background:var(--ink);color:#fff;padding:28px 24px 22px;text-align:center}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+header h1{font-size:clamp(22px,4vw,34px);font-weight:900;letter-spacing:-.02em;line-height:1.2}
+header p{margin-top:8px;font-size:13px;color:rgba(255,255,255,.5)}
+
+/* ── GAS 接続状態バー ── */
+#gasBanner{
+  padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:13px;font-weight:700;border-bottom:2px solid;
+}
+#gasBanner.unset{background:#fffbe6;border-color:#f7c948;color:#7a6200}
+#gasBanner.ok   {background:#edfaf4;border-color:#2BAB6F;color:#1a6640}
+#gasBanner.err  {background:#fff0ee;border-color:var(--accent);color:#a03020}
+#gasBanner .gas-url-preview{
+  flex:1;font-size:11px;font-weight:400;opacity:.7;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;
+}
+.gas-setting-btn{
+  border:1.5px solid currentColor;background:transparent;border-radius:7px;
+  padding:5px 13px;cursor:pointer;font-size:12px;font-weight:700;
+  color:inherit;white-space:nowrap;transition:opacity .15s;font-family:var(--font);
+}
+.gas-setting-btn:hover{opacity:.7}
+/* ── GAS 設定モーダル ── */
+#gasModalBg{
+  position:fixed;inset:0;background:rgba(26,23,20,.55);z-index:600;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+#gasModalBg.open{opacity:1;pointer-events:all}
+.gas-modal{
+  background:var(--surface);border-radius:16px;width:100%;max-width:520px;
+  box-shadow:0 8px 40px rgba(0,0,0,.2);
+  transform:translateY(20px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+#gasModalBg.open .gas-modal{transform:translateY(0)}
+.gas-modal-head{
+  padding:20px 24px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.gas-modal-head h2{font-size:17px;font-weight:900}
+.gas-modal-body{padding:20px 24px 8px;display:flex;flex-direction:column;gap:14px}
+.gas-modal-body p{font-size:13px;color:var(--ink-mute);line-height:1.7}
+.gas-url-input{
+  width:100%;border:1.5px solid var(--border);border-radius:9px;padding:11px 14px;
+  font-family:var(--font);font-size:13px;color:var(--ink);background:var(--bg);
+  outline:none;transition:border-color .15s;
+}
+.gas-url-input:focus{border-color:var(--accent2)}
+.gas-modal-steps{
+  background:var(--bg);border-radius:10px;padding:14px 16px;
+  font-size:12px;color:var(--ink-mute);line-height:2;
+}
+.gas-modal-steps ol{padding-left:18px}
+.gas-modal-footer{
+  padding:16px 24px 20px;border-top:1px solid var(--border);
+  display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:8px;
+}
+.gas-modal-footer-right{display:flex;gap:10px}
+
+/* ── Toolbar ── */
+.toolbar{
+  position:sticky;top:0;z-index:200;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+  padding:10px 20px;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+.toolbar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tb-btn{
+  border:1.5px solid var(--border);background:var(--bg);border-radius:8px;
+  padding:7px 14px;cursor:pointer;font-size:13px;font-weight:700;
+  color:var(--ink);display:flex;align-items:center;gap:5px;
+  transition:border-color .15s,background .15s,color .15s;
+}
+.tb-btn:hover{border-color:var(--accent2);background:#f0f5ff;color:var(--accent2)}
+.tb-btn.danger:hover{border-color:var(--accent);background:#fff5f3;color:var(--accent)}
+.tb-btn.primary{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.tb-btn.primary:hover{opacity:.85}
+.mode-tabs{display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden}
+.mode-tab{
+  padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer;
+  border:none;background:var(--bg);color:var(--ink-mute);
+  transition:background .15s,color .15s;
+}
+.mode-tab.active{background:var(--ink);color:#fff}
+/* progress */
+.progress-wrap{display:none;align-items:center;gap:10px;flex:1;min-width:160px}
+.progress-wrap.show{display:flex}
+.progress-track{flex:1;height:6px;background:var(--border);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),#f0824a);border-radius:99px;width:0%;transition:width .5s cubic-bezier(.34,1.56,.64,1)}
+.progress-text{font-size:12px;font-weight:800;color:var(--accent);white-space:nowrap}
+
+/* ── Spinner overlay ── */
+.spinner-overlay{
+  position:fixed;inset:0;background:rgba(247,245,242,.75);
+  z-index:800;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.spinner-overlay.show{opacity:1;pointer-events:all}
+.spinner{
+  width:40px;height:40px;border:4px solid var(--border);
+  border-top-color:var(--accent2);border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-msg{font-size:13px;font-weight:700;color:var(--ink-mute)}
+
+/* ── Error banner ── */
+.error-banner{
+  background:#fff0ee;border:1.5px solid var(--accent);border-radius:10px;
+  padding:14px 18px;margin:8px 16px;
+  font-size:13px;font-weight:700;color:var(--accent);
+  align-items:center;gap:10px;
+  display:none;
+}
+.error-banner.show{display:flex}
+.error-banner button{
+  margin-left:auto;background:none;border:1.5px solid var(--accent);
+  border-radius:7px;padding:4px 12px;cursor:pointer;font-size:12px;
+  font-weight:700;color:var(--accent);transition:background .15s;
+}
+.error-banner button:hover{background:var(--accent);color:#fff}
+
+/* ── Main grid ── */
+main{max-width:1100px;margin:0 auto;padding:28px 16px 80px;display:grid;grid-template-columns:1fr;gap:24px}
+
+/* ── Gen selector ── */
+.gen-card{
+  background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:24px;border-top:4px solid var(--accent);
+}
+.gen-card h2{font-size:13px;font-weight:800;letter-spacing:.08em;color:var(--ink-mute);text-transform:uppercase;margin-bottom:14px}
+.gen-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.gen-btn{
+  border:2px solid var(--border);background:var(--bg);border-radius:10px;
+  padding:14px 8px;cursor:pointer;font-size:15px;font-weight:700;color:var(--ink);
+  transition:border-color .15s,background .15s,color .15s,transform .12s;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.gen-btn:hover{border-color:var(--accent);background:#fff5f3}
+.gen-btn.active{border-color:var(--accent);background:var(--accent);color:#fff;transform:translateY(-2px);box-shadow:0 4px 14px rgba(224,92,58,.3)}
+
+/* ── Q card ── */
+.q-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;position:relative}
+.q-card.edit-mode{outline:2px dashed var(--accent2);outline-offset:-2px}
+.q-card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;min-width:0}
+.q-num{background:var(--ink);color:#fff;font-size:11px;font-weight:900;padding:3px 9px;border-radius:6px;white-space:nowrap;margin-top:3px;flex-shrink:0}
+.q-title-text{font-size:clamp(14px,2vw,18px);font-weight:800;line-height:1.4;flex:1;min-width:0;word-break:break-word}
+.gap-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:linear-gradient(135deg,#ff6b35,#f7c948);
+  color:#fff;font-size:10px;font-weight:800;padding:3px 9px;
+  border-radius:99px;white-space:nowrap;
+  box-shadow:0 2px 8px rgba(255,107,53,.35);
+  animation:pulse-badge 2s ease-in-out infinite;
+}
+@keyframes pulse-badge{0%,100%{box-shadow:0 2px 8px rgba(255,107,53,.35)}50%{box-shadow:0 2px 16px rgba(255,107,53,.6)}}
+.author-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:99px;padding:3px 10px 3px 7px;
+  font-size:11px;font-weight:700;color:var(--ink-mute);white-space:nowrap;flex-shrink:0;
+}
+.author-badge .ab-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+/* edit actions */
+.q-actions{display:none;gap:6px;margin-left:auto;flex-shrink:0}
+.q-actions.show{display:flex}
+.qa-btn{
+  border:1.5px solid var(--border);background:var(--bg);border-radius:7px;
+  padding:5px 11px;cursor:pointer;font-size:12px;font-weight:700;
+  color:var(--ink-mute);display:flex;align-items:center;gap:4px;transition:all .15s;
+}
+.qa-btn:hover{border-color:var(--accent2);color:var(--accent2);background:#f0f5ff}
+.qa-btn.del:hover{border-color:var(--accent);color:var(--accent);background:#fff5f3}
+/* vote strip */
+.vote-strip{padding:7px 20px;font-size:12px;color:var(--ink-mute);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:5px}
+.vote-strip strong{color:var(--accent2);font-weight:800}
+/* vote btns */
+.q-body{padding:20px}
+.vote-grid{display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:14px}
+.vote-btn{
+  border:2px solid var(--border);background:var(--bg);border-radius:10px;
+  padding:13px 16px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink);
+  text-align:left;display:flex;align-items:center;gap:11px;
+  transition:border-color .15s,background .15s,transform .12s;
+}
+.vote-btn .v-icon{font-size:19px;min-width:22px;text-align:center}
+.vote-btn:hover:not(:disabled){border-color:var(--accent2);background:#f0f5ff;transform:translateX(3px)}
+.vote-btn.chosen{border-color:var(--accent2);background:var(--accent2);color:#fff}
+.vote-btn:disabled{cursor:default;opacity:.75;transform:none}
+.vote-note{font-size:12px;color:var(--ink-mute);text-align:center;margin-top:2px}
+/* chart */
+.chart-wrap{border-top:1px solid var(--border);padding:18px 20px 20px;display:none}
+.chart-wrap.visible{display:block}
+.chart-wrap h3{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--ink-mute);text-transform:uppercase;margin-bottom:14px}
+.chart-container{position:relative;width:100%;height:260px}
+.gen-legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px}
+.gen-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-mute)}
+.gen-legend-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+
+/* ── Modal ── */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(26,23,20,.55);z-index:500;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--surface);border-radius:16px;width:100%;max-width:560px;
+  max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2);
+  transform:translateY(20px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal-head{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-head h2{font-size:17px;font-weight:900}
+.modal-close{border:none;background:none;cursor:pointer;font-size:22px;color:var(--ink-mute);line-height:1;padding:4px;border-radius:6px;transition:color .15s}
+.modal-close:hover{color:var(--accent)}
+.modal-body{padding:20px 24px 24px;display:flex;flex-direction:column;gap:18px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:12px;font-weight:800;color:var(--ink-mute);letter-spacing:.06em;text-transform:uppercase}
+.form-input{
+  border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;
+  font-family:var(--font);font-size:14px;color:var(--ink);background:var(--bg);
+  outline:none;transition:border-color .15s;
+}
+.form-input:focus{border-color:var(--accent2)}
+.form-input.error{border-color:var(--accent)}
+.opts-list{display:flex;flex-direction:column;gap:8px}
+.opt-row{display:flex;align-items:center;gap:8px}
+.opt-emoji-input{border:1.5px solid var(--border);border-radius:9px;padding:10px;font-size:18px;text-align:center;width:52px;flex-shrink:0;font-family:var(--font);background:var(--bg);outline:none;transition:border-color .15s}
+.opt-emoji-input:focus{border-color:var(--accent2)}
+.opt-text-input{flex:1;border:1.5px solid var(--border);border-radius:9px;padding:10px 12px;font-family:var(--font);font-size:14px;color:var(--ink);background:var(--bg);outline:none;transition:border-color .15s}
+.opt-text-input:focus{border-color:var(--accent2)}
+.opt-text-input.error{border-color:var(--accent)}
+.opt-del-btn{border:1.5px solid var(--border);background:var(--bg);border-radius:7px;padding:8px 10px;cursor:pointer;font-size:14px;color:var(--ink-mute);flex-shrink:0;transition:all .15s}
+.opt-del-btn:hover{border-color:var(--accent);color:var(--accent);background:#fff5f3}
+.add-opt-btn{border:1.5px dashed var(--border);background:var(--bg);border-radius:9px;padding:10px;cursor:pointer;font-size:13px;font-weight:700;color:var(--ink-mute);display:flex;align-items:center;justify-content:center;gap:6px;transition:border-color .15s,color .15s}
+.add-opt-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+.badge-toggle{display:flex;align-items:center;gap:10px}
+.toggle-switch{position:relative;width:42px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:99px;cursor:pointer;transition:background .2s}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle-switch input:checked + .toggle-slider{background:var(--accent)}
+.toggle-switch input:checked + .toggle-slider::before{transform:translateX(18px)}
+.modal-footer{padding:16px 24px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+.btn-save{background:var(--accent2);color:#fff;border:none;border-radius:9px;padding:11px 24px;cursor:pointer;font-size:14px;font-weight:800;transition:opacity .15s}
+.btn-save:hover{opacity:.85}
+.btn-cancel{background:var(--bg);color:var(--ink-mute);border:1.5px solid var(--border);border-radius:9px;padding:10px 18px;cursor:pointer;font-size:14px;font-weight:700;transition:all .15s}
+.btn-cancel:hover{border-color:var(--ink-mute);color:var(--ink)}
+.err-msg{color:var(--accent);font-size:12px;font-weight:700;display:none}
+.err-msg.show{display:block}
+
+/* ── Empty / toast / footer ── */
+.empty-state{grid-column:1/-1;text-align:center;padding:60px 24px;color:var(--ink-mute)}
+.empty-state .es-icon{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:15px;font-weight:600}
+.empty-state small{font-size:13px;opacity:.7}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:11px 22px;border-radius:100px;font-size:13px;font-weight:600;z-index:900;transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .3s;opacity:0;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+footer{text-align:center;padding:24px;font-size:11px;color:var(--ink-mute);letter-spacing:.05em}
+
+/* ── Responsive ── */
+@media(min-width:600px){.gen-grid{grid-template-columns:repeat(4,1fr)}.vote-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:900px){main{grid-template-columns:1fr 1fr}.gen-card,.empty-state{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">世代別意識調査 2025</p>
+  <h1>これ、どう思う？</h1>
+  <p>世代が違えば、常識も違う。あなたの感覚を教えてください。</p>
+</header>
+
+<!-- GAS 接続状態バー（常時表示） -->
+<div id="gasBanner" class="unset">
+  <span id="gasBannerIcon">⚠️</span>
+  <span id="gasBannerMsg">GAS Web App の URL が未設定です</span>
+  <span class="gas-url-preview" id="gasUrlPreview"></span>
+  <button class="gas-setting-btn" onclick="openGasModal()">⚙️ GAS を設定する</button>
+</div>
+
+<!-- 通信エラー表示 -->
+<div class="error-banner" id="errorBanner">
+  <span id="errorMsg">エラーが発生しました</span>
+  <button onclick="retryLoad()">再試行</button>
+</div>
+
+<!-- GAS 設定モーダル -->
+<div id="gasModalBg">
+  <div class="gas-modal">
+    <div class="gas-modal-head">
+      <h2>⚙️ GAS Web App の接続設定</h2>
+      <button class="modal-close" onclick="closeGasModal()">✕</button>
+    </div>
+    <div class="gas-modal-body">
+      <div class="gas-modal-steps">
+        <ol>
+          <li>Google スプレッドシートを新規作成する</li>
+          <li>「拡張機能」→「Apps Script」を開き、<code>gas.js</code> を貼り付ける</li>
+          <li>スクリプト内の <code>YOUR_SPREADSHEET_ID</code> を書き換える</li>
+          <li><code>initSheets</code> 関数を手動実行してシートを初期化する</li>
+          <li>「デプロイ」→「新しいデプロイ」→ 種類：<strong>ウェブアプリ</strong></li>
+          <li>アクセスできるユーザー：<strong>全員</strong> → デプロイ</li>
+          <li>発行された <strong>Web App URL</strong> を下に貼り付けて保存</li>
+        </ol>
+      </div>
+      <p>Web App URL を貼り付けてください：</p>
+      <input class="gas-url-input" id="gasUrlInput" type="url"
+             placeholder="https://script.google.com/macros/s/XXXXXX/exec"/>
+      <p id="gasUrlStatus" style="font-size:12px;min-height:18px"></p>
+    </div>
+    <div class="gas-modal-footer">
+      <button class="tb-btn danger" id="btnClearUrl" onclick="clearGasUrl()" style="display:none">🗑 URL を削除</button>
+      <div class="gas-modal-footer-right">
+        <button class="btn-cancel" onclick="closeGasModal()">キャンセル</button>
+        <button class="btn-save" onclick="saveGasUrl()">保存して接続</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="toolbar-left">
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tabAnswer" onclick="setMode('answer')">📋 回答モード</button>
+      <button class="mode-tab" id="tabEdit" onclick="setMode('edit')">✏️ 編集モード</button>
+    </div>
+    <button class="tb-btn primary" id="btnAddQ" onclick="openModal(null)" style="display:none">＋ 質問を追加</button>
+    <button class="tb-btn danger"  id="btnResetData" onclick="resetAllVotes()" style="display:none">🗑 投票データをリセット</button>
+  </div>
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-text" id="progressText"></span>
+  </div>
+  <button class="tb-btn danger" id="btnResetAnswers" onclick="resetMyAnswers()">↺ やり直す</button>
+</div>
+
+<main id="mainGrid">
+  <section class="gen-card" id="genSection">
+    <h2>STEP 1 ── あなたの世代を選んでください</h2>
+    <div class="gen-grid">
+      <button class="gen-btn" onclick="selectGen(0)"><span style="font-size:22px">🎮</span><span>10代・20代</span></button>
+      <button class="gen-btn" onclick="selectGen(1)"><span style="font-size:22px">💼</span><span>30代・40代</span></button>
+      <button class="gen-btn" onclick="selectGen(2)"><span style="font-size:22px">🏠</span><span>50代・60代</span></button>
+      <button class="gen-btn" onclick="selectGen(3)"><span style="font-size:22px">🌸</span><span>70代以上</span></button>
+    </div>
+  </section>
+</main>
+
+<footer>Google スプレッドシート + GAS で管理されています。個人情報は収集しません。</footer>
+
+<!-- スピナー -->
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner"></div>
+  <p class="spinner-msg" id="spinnerMsg">読み込み中…</p>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h2 id="modalTitle">質問を追加</h2>
+      <button class="modal-close" onclick="closeModal()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="mTitle">質問文</label>
+        <input class="form-input" id="mTitle" type="text" placeholder="例：休日はどう過ごしたい？" maxlength="80"/>
+        <span class="err-msg" id="errTitle">質問文を入力してください</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="mAuthorGen">作成者の年代</label>
+        <select class="form-input" id="mAuthorGen">
+          <option value="">── 未設定 ──</option>
+          <option value="0">🎮 10代・20代</option>
+          <option value="1">💼 30代・40代</option>
+          <option value="2">🏠 50代・60代</option>
+          <option value="3">🌸 70代以上</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">選択肢（2〜4個）</label>
+        <div class="opts-list" id="optsList"></div>
+        <button class="add-opt-btn" id="addOptBtn" onclick="addOptRow()">＋ 選択肢を追加</button>
+        <span class="err-msg" id="errOpts">選択肢を2個以上入力してください</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ギャップバッジ</label>
+        <div class="badge-toggle">
+          <label class="toggle-switch">
+            <input type="checkbox" id="mBadge"/>
+            <span class="toggle-slider"></span>
+          </label>
+          <span style="font-size:13px;color:var(--ink-mute)">「🔥 ギャップ度：特大」バッジを表示する</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-save"   onclick="saveQuestion()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════
+   定数
+══════════════════════════════════════════════════ */
+const GENS       = ['10代・20代','30代・40代','50代・60代','70代以上'];
+const GEN_COLORS = ['#E05C3A','#3A7BE0','#2BAB6F','#9B59D0'];
+const GEN_EMOJIS = ['🎮','💼','🏠','🌸'];
+const LS_GAS_URL = 'sedai_gas_url';   // GAS URL 保存キー
+const LS_ANSWERS = 'sedai_my_answers';// 自分の回答（ローカル保存）
+
+/* ══════════════════════════════════════════════════
+   状態
+══════════════════════════════════════════════════ */
+let GAS_URL    = localStorage.getItem(LS_GAS_URL) || '';
+let questions  = [];   // GASから取得した質問一覧
+let results    = {};   // GASから取得した集計 { qid: [[g0o0,...],[g1o0,...],...] }
+let selectedGen = null;
+let myAnswers   = JSON.parse(localStorage.getItem(LS_ANSWERS) || '{}');
+let mode        = 'answer';
+let editingId   = null;
+let chartMap    = {};
+
+/* ══════════════════════════════════════════════════
+   GAS URL 管理
+══════════════════════════════════════════════════ */
+/* ── GAS 接続バナー更新 ── */
+function updateGasBanner(state, msg, urlPreview) {
+  const b   = document.getElementById('gasBanner');
+  const ico = document.getElementById('gasBannerIcon');
+  const txt = document.getElementById('gasBannerMsg');
+  const pre = document.getElementById('gasUrlPreview');
+  b.className = state; // 'unset' | 'ok' | 'err'
+  ico.textContent = state==='ok' ? '✅' : state==='err' ? '❌' : '⚠️';
+  txt.textContent = msg;
+  pre.textContent = urlPreview || '';
+}
+
+function checkGasUrl() {
+  if (!GAS_URL) {
+    updateGasBanner('unset','GAS Web App の URL が未設定です — 右の「⚙️ GAS を設定する」ボタンを押してください','');
+    return false;
+  }
+  updateGasBanner('ok','GAS に接続済み', GAS_URL);
+  return true;
+}
+
+/* ── GAS 設定モーダル ── */
+function openGasModal() {
+  document.getElementById('gasUrlInput').value = GAS_URL || '';
+  document.getElementById('gasUrlStatus').textContent = '';
+  document.getElementById('btnClearUrl').style.display = GAS_URL ? '' : 'none';
+  document.getElementById('gasModalBg').classList.add('open');
+  setTimeout(() => document.getElementById('gasUrlInput').focus(), 50);
+}
+function closeGasModal() {
+  document.getElementById('gasModalBg').classList.remove('open');
+}
+function saveGasUrl() {
+  const val = document.getElementById('gasUrlInput').value.trim();
+  const status = document.getElementById('gasUrlStatus');
+  if (!val.startsWith('https://script.google.com')) {
+    status.style.color = 'var(--accent)';
+    status.textContent = '⚠️ 「https://script.google.com」で始まる URL を入力してください';
+    return;
+  }
+  GAS_URL = val;
+  localStorage.setItem(LS_GAS_URL, GAS_URL);
+  closeGasModal();
+  updateGasBanner('ok','GAS に接続済み', GAS_URL);
+  loadFromGas();
+}
+function clearGasUrl() {
+  if (!confirm('GAS URL の設定を削除しますか？')) return;
+  GAS_URL = '';
+  localStorage.removeItem(LS_GAS_URL);
+  questions = []; results = {};
+  closeGasModal();
+  checkGasUrl();
+  renderAll();
+}
+
+/* ══════════════════════════════════════════════════
+   GAS 通信レイヤー
+══════════════════════════════════════════════════ */
+// GASはブラウザからのPOSTのCORSを通過できないため、すべてGETで通信する
+async function gasCall(params) {
+  const url = new URL(GAS_URL);
+  Object.entries(params).forEach(([k,v]) => {
+    if (v !== null && v !== undefined) url.searchParams.set(k, String(v));
+  });
+  const res = await fetch(url.toString());
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'GAS error');
+  return json.data;
+}
+
+/* ══════════════════════════════════════════════════
+   データ読み込み
+══════════════════════════════════════════════════ */
+async function loadFromGas() {
+  if (!checkGasUrl()) return;
+  showSpinner('データを読み込み中…');
+  hideError();
+  try {
+    const [qs, rs] = await Promise.all([
+      gasCall({ action: 'getQuestions' }),
+      gasCall({ action: 'getResults'   }),
+    ]);
+    questions = qs;
+    results   = rs;
+    renderAll();
+  } catch(e) {
+    showError('GAS への接続に失敗しました: ' + e.message);
+  } finally {
+    hideSpinner();
+  }
+}
+
+async function retryLoad() { await loadFromGas(); }
+
+/* ══════════════════════════════════════════════════
+   集計ヘルパー（results から総票数・%取得）
+══════════════════════════════════════════════════ */
+function getVotes(qid) {
+  // results[qid] は [[g0o0,g0o1,...],[g1o0,...],...]
+  return results[qid] || null;
+}
+
+function totalVotes(qid) {
+  const v = getVotes(qid);
+  if (!v) return 0;
+  return v.reduce((s, row) => s + row.reduce((a,b)=>a+b,0), 0);
+}
+
+function pct(qid) {
+  const v = getVotes(qid);
+  if (!v) return [];
+  return v.map(row => {
+    const t = row.reduce((a,b)=>a+b,0);
+    return row.map(c => t>0 ? Math.round(c/t*100) : 0);
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   モード切替
+══════════════════════════════════════════════════ */
+function setMode(m) {
+  mode = m;
+  document.getElementById('tabAnswer').classList.toggle('active', m==='answer');
+  document.getElementById('tabEdit').classList.toggle('active',   m==='edit');
+  document.getElementById('btnAddQ').style.display      = m==='edit' ? '' : 'none';
+  document.getElementById('btnResetData').style.display = m==='edit' ? '' : 'none';
+  document.getElementById('btnResetAnswers').style.display = m==='answer' ? '' : 'none';
+  document.getElementById('progressWrap').classList.toggle('show', m==='answer');
+  renderAll();
+}
+
+/* ══════════════════════════════════════════════════
+   描画
+══════════════════════════════════════════════════ */
+function renderAll() {
+  Object.values(chartMap).forEach(c => { try{c.destroy()}catch(e){} });
+  chartMap = {};
+
+  const grid = document.getElementById('mainGrid');
+  grid.querySelectorAll('.q-card,.empty-state').forEach(el => el.remove());
+
+  if (questions.length === 0) {
+    grid.insertAdjacentHTML('beforeend',
+      `<div class="empty-state">
+        <div class="es-icon">📭</div>
+        <p>質問がまだありません</p>
+        <small>「編集モード」→「＋ 質問を追加」から作成できます</small>
+      </div>`);
+    updateProgress();
+    return;
+  }
+
+  questions.forEach((q, qi) => {
+    const card = document.createElement('section');
+    card.className = 'q-card' + (mode==='edit' ? ' edit-mode' : '');
+    card.id = 'card_' + q.id;
+
+    const answered  = myAnswers[q.id] !== undefined;
+    const genChosen = selectedGen !== null;
+    const total     = totalVotes(q.id);
+    const optCount  = q.options.length;
+    const votes     = getVotes(q.id); // [[g0o0,...],...]
+
+    const voteBtns = q.options.map((opt, oi) => {
+      const isChosen = myAnswers[q.id] === oi;
+      const dis = (answered || mode==='edit' || !genChosen) ? 'disabled' : '';
+
+      // 各選択肢の合計票数（全世代合算）
+      const optTotal = votes
+        ? votes.reduce((s, row) => s + (row[oi] || 0), 0)
+        : 0;
+      // 各世代のその選択肢の% (ツールチップ用にdata属性で持たせる)
+      return `<button class="vote-btn${isChosen?' chosen':''}" ${dis} onclick="castVote('${q.id}',${oi})">
+        <span class="v-icon">${opt.emoji||'▶'}</span>
+        <span>${escHtml(opt.text)}</span>
+      </button>`;
+    }).join('');
+
+    const noteText = mode==='edit'
+      ? '編集モードでは回答できません'
+      : answered ? '投票済み ✓'
+      : !genChosen ? '世代を選ぶと投票できます'
+      : 'あなたの意見を選んでください';
+
+    const showChart = answered || mode==='edit';
+
+    // 作成者バッジ
+    const authorBadge = (q.authorGen != null && q.authorGen !== '')
+      ? `<span class="author-badge">
+           <span class="ab-dot" style="background:${GEN_COLORS[q.authorGen]}"></span>
+           ${GEN_EMOJIS[q.authorGen]} ${GENS[q.authorGen]}が作成
+         </span>`
+      : '';
+
+    card.innerHTML = `
+      <div class="q-card-header">
+        <span class="q-num">Q${qi+1}</span>
+        <span class="q-title-text">${escHtml(q.title)}</span>
+        ${q.badge ? '<span class="gap-badge">🔥 ギャップ度：特大</span>' : ''}
+        ${authorBadge}
+        <div class="q-actions${mode==='edit'?' show':''}">
+          <button class="qa-btn" onclick="openModal('${q.id}')">✏️ 編集</button>
+          <button class="qa-btn del" onclick="deleteQuestion('${q.id}')">🗑 削除</button>
+        </div>
+      </div>
+      <div class="vote-strip">🗳 現在の総投票数：<strong>${total.toLocaleString()}</strong>票</div>
+      <div class="q-body">
+        <div class="vote-grid" style="grid-template-columns:${optCount<=2?'1fr 1fr':'1fr'}">${voteBtns}</div>
+        <p class="vote-note">${noteText}</p>
+      </div>
+      <div class="chart-wrap${showChart?' visible':''}" id="cwrap_${q.id}">
+        <h3>世代別の結果</h3>
+        <div class="chart-container"><canvas id="chart_${q.id}"></canvas></div>
+        <div class="gen-legend" id="legend_${q.id}"></div>
+      </div>
+    `;
+    grid.appendChild(card);
+
+    if (showChart) {
+      requestAnimationFrame(() => drawChart(q));
+    }
+  });
+
+  updateProgress();
+}
+
+function drawChart(q) {
+  const canvas = document.getElementById('chart_' + q.id);
+  if (!canvas) return;
+  if (chartMap[q.id]) { try{chartMap[q.id].destroy()}catch(e){} }
+  const labels   = q.options.map(o => o.text);
+  const pctData  = pct(q.id);
+  const datasets = pctData.map((row,gi) => ({
+    label: GENS[gi], data: row,
+    backgroundColor: GEN_COLORS[gi],
+    borderRadius: 5, borderSkipped: false,
+  }));
+  chartMap[q.id] = new Chart(canvas, {
+    type:'bar',
+    data:{ labels, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:{ duration:800, easing:'easeOutBack' },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          callbacks:{ label: ctx => ` ${ctx.dataset.label}：${ctx.parsed.y}%` },
+          backgroundColor:'#1A1714',titleColor:'rgba(255,255,255,.6)',
+          bodyColor:'#fff',cornerRadius:8,padding:10,
+        },
+      },
+      scales:{
+        x:{
+          grid:{display:false},
+          ticks:{
+            font:{size:11},color:'#7A7370',maxRotation:0,
+            callback(val){
+              const lbl = labels[val] || '';
+              if (lbl.length > 10) {
+                const sep = lbl.search(/[・\s\/]/);
+                const mid = sep>0 ? sep+1 : Math.ceil(lbl.length/2);
+                return [lbl.slice(0,mid),lbl.slice(mid)];
+              }
+              return lbl;
+            }
+          }
+        },
+        y:{ min:0,max:100, ticks:{callback:v=>v+'%',font:{size:11},color:'#7A7370',stepSize:25}, grid:{color:'rgba(0,0,0,.06)'} }
+      }
+    }
+  });
+  const leg = document.getElementById('legend_' + q.id);
+  if (leg) leg.innerHTML = GENS.map((g,i)=>
+    `<span class="gen-legend-item">
+      <span class="gen-legend-dot" style="background:${GEN_COLORS[i]}"></span>${g}
+    </span>`
+  ).join('');
+}
+
+/* ══════════════════════════════════════════════════
+   世代選択
+══════════════════════════════════════════════════ */
+function selectGen(idx) {
+  selectedGen = idx;
+  document.querySelectorAll('.gen-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  questions.forEach(q => {
+    if (myAnswers[q.id] === undefined) {
+      const card = document.getElementById('card_'+q.id);
+      if (!card) return;
+      card.querySelectorAll('.vote-btn').forEach(b => b.disabled = false);
+      const note = card.querySelector('.vote-note');
+      if (note) note.textContent = 'あなたの意見を選んでください';
+    }
+  });
+  updateProgress();
+}
+
+/* ══════════════════════════════════════════════════
+   投票
+══════════════════════════════════════════════════ */
+async function castVote(qid, optIdx) {
+  if (selectedGen === null) {
+    showToast('まず世代を選んでください！');
+    document.getElementById('genSection').scrollIntoView({behavior:'smooth'});
+    return;
+  }
+  if (myAnswers[qid] !== undefined) return;
+
+  // 楽観的 UI 更新
+  myAnswers[qid] = optIdx;
+  localStorage.setItem(LS_ANSWERS, JSON.stringify(myAnswers));
+
+  // results にも即時反映（楽観的）
+  if (!results[qid]) {
+    const q = questions.find(x=>x.id===qid);
+    results[qid] = GENS.map(() => q.options.map(()=>0));
+  }
+  results[qid][selectedGen][optIdx]++;
+
+  renderAll();
+  showToast('投票ありがとうございます！ 🎉');
+
+  // 次の未回答へスクロール
+  const nextQ = questions.find(x => myAnswers[x.id] === undefined);
+  if (nextQ) {
+    setTimeout(() => {
+      document.getElementById('card_'+nextQ.id)?.scrollIntoView({behavior:'smooth',block:'start'});
+    }, 600);
+  }
+
+  // GAS に非同期送信（失敗してもUIは維持）
+  try {
+    await gasCall({ action:'castVote', questionId:qid, genIndex:selectedGen, optionIndex:optIdx });
+  } catch(e) {
+    showToast('⚠️ サーバーへの送信に失敗しました（ローカルには保存済み）');
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   進捗
+══════════════════════════════════════════════════ */
+function updateProgress() {
+  const total = questions.length + 1;
+  let done    = selectedGen !== null ? 1 : 0;
+  done       += Object.keys(myAnswers).length;
+  const p     = total > 0 ? Math.round(done/total*100) : 0;
+  document.getElementById('progressFill').style.width = p+'%';
+  document.getElementById('progressText').textContent = `${done}/${total} 完了`;
+}
+
+/* ══════════════════════════════════════════════════
+   リセット
+══════════════════════════════════════════════════ */
+function resetMyAnswers() {
+  if (!confirm('あなたの回答をリセットして最初からやり直しますか？')) return;
+  selectedGen = null;
+  myAnswers   = {};
+  localStorage.removeItem(LS_ANSWERS);
+  document.querySelectorAll('.gen-btn').forEach(b => b.classList.remove('active'));
+  renderAll();
+  window.scrollTo({top:0,behavior:'smooth'});
+  showToast('リセットしました！');
+}
+
+async function resetAllVotes() {
+  if (!confirm('全質問の投票データをリセットしますか？\nスプレッドシートの Votes シートも削除されます。\nこの操作は元に戻せません。')) return;
+  showSpinner('投票データを削除中…');
+  try {
+    // 各質問を再保存することでサーバー側の votes は deleteVotesByQuestion で消す
+    // 簡易実装：全質問を順に deleteQuestion → saveQuestion する代わりに、
+    // GAS 側に resetVotes アクションを追加するのが理想だが、
+    // ここでは results をゼロクリアしてローカル反映のみ行い、
+    // Votes シートは GAS 管理者が手動クリアする旨を通知する
+    results = {};
+    questions.forEach(q => {
+      results[q.id] = GENS.map(() => q.options.map(()=>0));
+    });
+    myAnswers = {};
+    localStorage.removeItem(LS_ANSWERS);
+    renderAll();
+    showToast('⚠️ ローカルをリセットしました。スプレッドシートの Votes シートも手動で削除してください。');
+  } finally {
+    hideSpinner();
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   質問削除
+══════════════════════════════════════════════════ */
+async function deleteQuestion(qid) {
+  if (!confirm('この質問を削除しますか？\n投票データも削除されます。')) return;
+  showSpinner('削除中…');
+  try {
+    await gasCall({ action:'deleteQuestion', id:qid });
+    questions = questions.filter(q => q.id !== qid);
+    delete results[qid];
+    delete myAnswers[qid];
+    localStorage.setItem(LS_ANSWERS, JSON.stringify(myAnswers));
+    if (chartMap[qid]) { try{chartMap[qid].destroy()}catch(e){} delete chartMap[qid]; }
+    renderAll();
+    showToast('質問を削除しました');
+  } catch(e) {
+    showError('削除に失敗しました: ' + e.message);
+  } finally {
+    hideSpinner();
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   モーダル
+══════════════════════════════════════════════════ */
+function openModal(qid) {
+  editingId = qid;
+  const q   = qid ? questions.find(x=>x.id===qid) : null;
+
+  document.getElementById('modalTitle').textContent = q ? '質問を編集' : '質問を追加';
+  document.getElementById('mTitle').value           = q ? q.title : '';
+  document.getElementById('mBadge').checked         = q ? q.badge : false;
+  document.getElementById('mAuthorGen').value       = (q && q.authorGen != null) ? String(q.authorGen) : '';
+
+  ['errTitle','errOpts'].forEach(id => document.getElementById(id).classList.remove('show'));
+  document.getElementById('mTitle').classList.remove('error');
+
+  const opts = q ? q.options : [{emoji:'▶',text:''},{emoji:'▶',text:''}];
+  const list = document.getElementById('optsList');
+  list.innerHTML = '';
+  opts.forEach(o => addOptRow(o.emoji, o.text));
+  updateAddOptBtn();
+
+  document.getElementById('modalBg').classList.add('open');
+  setTimeout(() => document.getElementById('mTitle').focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('open');
+  editingId = null;
+}
+
+function addOptRow(emoji='▶', text='') {
+  const list = document.getElementById('optsList');
+  if (list.querySelectorAll('.opt-row').length >= 4) return;
+  const row = document.createElement('div');
+  row.className = 'opt-row';
+  row.innerHTML = `
+    <input class="opt-emoji-input" type="text" maxlength="2" value="${escHtml(emoji)}" placeholder="🔹">
+    <input class="opt-text-input"  type="text" maxlength="40" value="${escHtml(text)}" placeholder="選択肢のテキスト">
+    <button class="opt-del-btn" onclick="removeOptRow(this)">✕</button>
+  `;
+  list.appendChild(row);
+  updateAddOptBtn();
+}
+
+function removeOptRow(btn) {
+  const list = document.getElementById('optsList');
+  if (list.querySelectorAll('.opt-row').length <= 2) { showToast('選択肢は最低2個必要です'); return; }
+  btn.closest('.opt-row').remove();
+  updateAddOptBtn();
+}
+
+function updateAddOptBtn() {
+  const count = document.getElementById('optsList').querySelectorAll('.opt-row').length;
+  document.getElementById('addOptBtn').style.display = count >= 4 ? 'none' : '';
+}
+
+async function saveQuestion() {
+  let valid = true;
+  const title = document.getElementById('mTitle').value.trim();
+  if (!title) {
+    document.getElementById('errTitle').classList.add('show');
+    document.getElementById('mTitle').classList.add('error');
+    valid = false;
+  } else {
+    document.getElementById('errTitle').classList.remove('show');
+    document.getElementById('mTitle').classList.remove('error');
+  }
+
+  const rows = document.querySelectorAll('#optsList .opt-row');
+  const opts = []; let optsOk = true;
+  rows.forEach(row => {
+    const em = row.querySelector('.opt-emoji-input').value.trim() || '▶';
+    const tx = row.querySelector('.opt-text-input').value.trim();
+    if (!tx) { row.querySelector('.opt-text-input').classList.add('error'); optsOk = false; }
+    else       row.querySelector('.opt-text-input').classList.remove('error');
+    opts.push({ emoji:em, text:tx });
+  });
+  if (!optsOk || opts.length < 2) {
+    document.getElementById('errOpts').classList.add('show'); valid = false;
+  } else {
+    document.getElementById('errOpts').classList.remove('show');
+  }
+  if (!valid) return;
+
+  const badge     = document.getElementById('mBadge').checked;
+  const agVal     = document.getElementById('mAuthorGen').value;
+  const authorGen = agVal !== '' ? Number(agVal) : null;
+  const id        = editingId || 'q_' + Math.random().toString(36).slice(2,9);
+
+  showSpinner('保存中…');
+  closeModal();
+  try {
+    await gasCall({
+      action:'saveQuestion', id, title,
+      badge: String(badge),
+      authorGen: authorGen ?? '',
+      options: JSON.stringify(opts),
+    });
+
+    if (editingId) {
+      const q = questions.find(x=>x.id===editingId);
+      const prevOptCount = q.options.length;
+      q.title = title; q.badge = badge; q.authorGen = authorGen;
+      if (opts.length !== prevOptCount && results[id]) {
+        results[id] = GENS.map((_,gi) =>
+          opts.map((_,oi) => oi < prevOptCount ? (results[id][gi]?.[oi] ?? 0) : 0)
+        );
+      }
+      q.options = opts;
+    } else {
+      questions.push({ id, title, badge, authorGen, options:opts });
+      results[id] = GENS.map(() => opts.map(()=>0));
+    }
+
+    renderAll();
+    showToast(editingId ? '質問を更新しました ✓' : '質問を追加しました ✓');
+  } catch(e) {
+    showError('保存に失敗しました: ' + e.message);
+  } finally {
+    hideSpinner();
+  }
+}
+
+document.getElementById('modalBg').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalBg')) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeGasModal(); } });
+
+/* ══════════════════════════════════════════════════
+   UI ユーティリティ
+══════════════════════════════════════════════════ */
+function showSpinner(msg='処理中…') {
+  document.getElementById('spinnerMsg').textContent = msg;
+  document.getElementById('spinner').classList.add('show');
+}
+function hideSpinner() {
+  document.getElementById('spinner').classList.remove('show');
+}
+function showError(msg) {
+  const b = document.getElementById('errorBanner');
+  document.getElementById('errorMsg').textContent = msg;
+  b.classList.add('show');
+}
+function hideError() {
+  document.getElementById('errorBanner').classList.remove('show');
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ══════════════════════════════════════════════════
+   初期化
+══════════════════════════════════════════════════ */
+(function init() {
+  checkGasUrl();
+  if (GAS_URL) {
+    loadFromGas();
+  } else {
+    // URL 未設定時はセットアップバナーのみ表示
+    renderAll();
+  }
+  setMode('answer');
+})();
+</script>
+</body>
+</html>
