@@ -286,6 +286,46 @@ main{max-width:1100px;margin:0 auto;padding:28px 16px 80px;display:grid;grid-tem
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 footer{text-align:center;padding:24px;font-size:11px;color:var(--ink-mute);letter-spacing:.05em}
 
+/* ── 会員バー ── */
+.auth-bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.auth-btn{
+  border:1.5px solid var(--border);background:var(--bg);border-radius:8px;
+  padding:7px 14px;cursor:pointer;font-size:13px;font-weight:700;
+  color:var(--ink);transition:border-color .15s,background .15s,color .15s;
+}
+.auth-btn:hover{border-color:var(--accent2);background:#f0f5ff;color:var(--accent2)}
+.auth-btn.primary{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.auth-btn.primary:hover{opacity:.85}
+.user-chip{
+  display:flex;align-items:center;gap:8px;background:var(--bg);
+  border:1.5px solid var(--border);border-radius:99px;padding:5px 8px 5px 14px;
+  font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;transition:border-color .15s;
+}
+.user-chip:hover{border-color:var(--accent2)}
+.user-chip .uc-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.user-chip .uc-caret{color:var(--ink-mute);font-size:10px}
+.pw-field-wrap{position:relative}
+.pw-field-wrap .form-input{padding-right:44px;width:100%}
+.pw-toggle-btn{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  border:none;background:none;cursor:pointer;font-size:16px;padding:6px;
+  color:var(--ink-mute);line-height:1;
+}
+.form-hint{font-size:12px;color:var(--ink-mute)}
+.form-link{background:none;border:none;color:var(--accent2);font-size:12px;font-weight:700;cursor:pointer;padding:0;text-align:left}
+.form-link:hover{text-decoration:underline}
+.login-gate{
+  background:var(--bg);border:1.5px dashed var(--border);border-radius:10px;
+  padding:16px;text-align:center;font-size:13px;color:var(--ink-mute);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.account-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)}
+.account-row:last-child{border-bottom:none}
+.account-row-label{font-size:13px;font-weight:700;color:var(--ink)}
+.account-row-sub{font-size:12px;color:var(--ink-mute);margin-top:2px}
+
 /* ── Responsive ── */
 @media(min-width:600px){.gen-grid{grid-template-columns:repeat(4,1fr)}.vote-grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:900px){main{grid-template-columns:1fr 1fr}.gen-card,.empty-state{grid-column:1/-1}}
@@ -299,6 +339,22 @@ footer{text-align:center;padding:24px;font-size:11px;color:var(--ink-mute);lette
   <h1>これ、どう思う？</h1>
   <p>世代が違えば、常識も違う。あなたの感覚を教えてください。</p>
 </header>
+
+<!-- 会員バー -->
+<div class="toolbar" style="justify-content:flex-end">
+  <div class="auth-bar" id="authBarLoggedOut">
+    <button class="auth-btn" onclick="openLoginModal()">ログイン</button>
+    <button class="auth-btn primary" onclick="openRegisterModal()">会員登録</button>
+  </div>
+  <div class="auth-bar" id="authBarLoggedIn" style="display:none">
+    <div class="user-chip" onclick="openAccountModal()">
+      <span class="uc-dot"></span>
+      <span id="userChipName"></span>
+      <span class="uc-caret">▾</span>
+    </div>
+    <button class="auth-btn" onclick="doLogout()">ログアウト</button>
+  </div>
+</div>
 
 <!-- GAS 接続状態バー（常時表示） -->
 <div id="gasBanner" class="unset">
@@ -326,8 +382,8 @@ footer{text-align:center;padding:24px;font-size:11px;color:var(--ink-mute);lette
         <ol>
           <li>Google スプレッドシートを新規作成する</li>
           <li>「拡張機能」→「Apps Script」を開き、<code>gas.js</code> を貼り付ける</li>
-          <li>スクリプト内の <code>YOUR_SPREADSHEET_ID</code> を書き換える</li>
-          <li><code>initSheets</code> 関数を手動実行してシートを初期化する</li>
+          <li>「プロジェクトの設定」→「スクリプト プロパティ」で <code>SS_ID</code>（スプレッドシートID）と <code>PEPPER</code>（好きな長い文字列。パスワードのハッシュ化に使用）を追加する</li>
+          <li><code>initSheets</code> 関数を手動実行してシートを初期化する（会員登録メール送信の許可を求められたら承認する）</li>
           <li>「デプロイ」→「新しいデプロイ」→ 種類：<strong>ウェブアプリ</strong></li>
           <li>アクセスできるユーザー：<strong>全員</strong> → デプロイ</li>
           <li>発行された <strong>Web App URL</strong> を下に貼り付けて保存</li>
@@ -344,6 +400,166 @@ footer{text-align:center;padding:24px;font-size:11px;color:var(--ink-mute);lette
         <button class="btn-cancel" onclick="closeGasModal()">キャンセル</button>
         <button class="btn-save" onclick="saveGasUrl()">保存して接続</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ログインモーダル -->
+<div class="modal-bg" id="loginModalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2>ログイン</h2>
+      <button class="modal-close" onclick="closeLoginModal()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="loginEmail">メールアドレス</label>
+        <input class="form-input" id="loginEmail" type="email" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="loginPassword">パスワード</label>
+        <div class="pw-field-wrap">
+          <input class="form-input" id="loginPassword" type="password" autocomplete="current-password"/>
+          <button type="button" class="pw-toggle-btn" onclick="togglePw('loginPassword',this)">👁</button>
+        </div>
+      </div>
+      <button class="form-link" onclick="closeLoginModal();openForgotModal()">パスワードをお忘れですか？</button>
+      <span class="err-msg" id="loginErr"></span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeLoginModal()">キャンセル</button>
+      <button class="btn-save" onclick="doLogin()">ログイン</button>
+    </div>
+  </div>
+</div>
+
+<!-- 会員登録モーダル -->
+<div class="modal-bg" id="registerModalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2>会員登録</h2>
+      <button class="modal-close" onclick="closeRegisterModal()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="regNickname">ニックネーム</label>
+        <input class="form-input" id="regNickname" type="text" maxlength="20"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="regEmail">メールアドレス</label>
+        <input class="form-input" id="regEmail" type="email" autocomplete="email"/>
+        <span class="form-hint">仮パスワードをこのアドレスに送信します</span>
+      </div>
+      <span class="err-msg" id="registerErr"></span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeRegisterModal()">キャンセル</button>
+      <button class="btn-save" onclick="doRegister()">登録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- パスワードをお忘れの方モーダル -->
+<div class="modal-bg" id="forgotModalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2>パスワード再発行</h2>
+      <button class="modal-close" onclick="closeForgotModal()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="forgotEmail">メールアドレス</label>
+        <input class="form-input" id="forgotEmail" type="email" autocomplete="email"/>
+        <span class="form-hint">登録済みのメールアドレスに仮パスワードを再発行して送信します</span>
+      </div>
+      <span class="err-msg" id="forgotErr"></span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeForgotModal()">キャンセル</button>
+      <button class="btn-save" onclick="doForgotPassword()">再発行する</button>
+    </div>
+  </div>
+</div>
+
+<!-- パスワード変更モーダル（初回ログイン時は必須） -->
+<div class="modal-bg" id="changePwModalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2 id="changePwTitle">パスワード変更</h2>
+      <button class="modal-close" id="changePwCloseBtn" onclick="closeChangePwModal()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="changePwNotice" style="font-size:13px;color:var(--ink-mute);display:none">
+        仮パスワードでログインしました。続けるには新しいパスワードを設定してください。
+      </p>
+      <div class="form-group">
+        <label class="form-label" for="newPassword">新しいパスワード（8文字以上）</label>
+        <div class="pw-field-wrap">
+          <input class="form-input" id="newPassword" type="password" autocomplete="new-password"/>
+          <button type="button" class="pw-toggle-btn" onclick="togglePw('newPassword',this)">👁</button>
+        </div>
+      </div>
+      <span class="err-msg" id="changePwErr"></span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" id="changePwCancelBtn" onclick="closeChangePwModal()">キャンセル</button>
+      <button class="btn-save" onclick="doChangePassword()">変更する</button>
+    </div>
+  </div>
+</div>
+
+<!-- アカウント設定モーダル -->
+<div class="modal-bg" id="accountModalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2>アカウント設定</h2>
+      <button class="modal-close" onclick="closeAccountModal()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="account-row">
+        <div>
+          <div class="account-row-label">ニックネーム</div>
+          <div class="account-row-sub" id="accountNicknameDisp"></div>
+        </div>
+        <button class="auth-btn" onclick="openNicknameEdit()">変更</button>
+      </div>
+      <div class="form-group" id="nicknameEditWrap" style="display:none">
+        <input class="form-input" id="accountNicknameInput" type="text" maxlength="20"/>
+        <div style="display:flex;gap:8px">
+          <button class="btn-save" onclick="doUpdateNickname()">保存</button>
+          <button class="btn-cancel" onclick="document.getElementById('nicknameEditWrap').style.display='none'">キャンセル</button>
+        </div>
+        <span class="err-msg" id="nicknameErr"></span>
+      </div>
+      <div class="account-row">
+        <div>
+          <div class="account-row-label">パスワード</div>
+          <div class="account-row-sub">パスワードを変更できます</div>
+        </div>
+        <button class="auth-btn" onclick="closeAccountModal();openChangePwModal(false)">変更</button>
+      </div>
+      <div class="account-row">
+        <div>
+          <div class="account-row-label" style="color:var(--accent)">退会</div>
+          <div class="account-row-sub">アカウントを削除します（投稿は削除されません）</div>
+        </div>
+        <button class="auth-btn danger" style="border-color:var(--accent);color:var(--accent)" onclick="openDeleteAccountConfirm()">退会する</button>
+      </div>
+      <div class="form-group" id="deleteAccountWrap" style="display:none">
+        <label class="form-label" for="deleteAccountPassword">確認のためパスワードを入力してください</label>
+        <div class="pw-field-wrap">
+          <input class="form-input" id="deleteAccountPassword" type="password"/>
+          <button type="button" class="pw-toggle-btn" onclick="togglePw('deleteAccountPassword',this)">👁</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="tb-btn danger" onclick="doDeleteAccount()">退会を確定する</button>
+          <button class="btn-cancel" onclick="document.getElementById('deleteAccountWrap').style.display='none'">キャンセル</button>
+        </div>
+        <span class="err-msg" id="deleteAccountErr"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeAccountModal()">閉じる</button>
     </div>
   </div>
 </div>
@@ -442,12 +658,14 @@ const GENS       = ['10代・20代','30代・40代','50代・60代','70代以上
 const GEN_COLORS = ['#E05C3A','#3A7BE0','#2BAB6F','#9B59D0'];
 const GEN_EMOJIS = ['🎮','💼','🏠','🌸'];
 const LS_GAS_URL = 'sedai_gas_url';   // GAS URL 保存キー
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxbFpyQ4CyM2Ft9K5b8VSeI94bp83l0i2pP23qZa98v8LbhL7EmyWA0zYRicO4aT1HA7g/exec';
 const LS_ANSWERS = 'sedai_my_answers';// 自分の回答（ローカル保存）
+const LS_SESSION = 'sedai_session_id';// ログインセッションID保存キー
 
 /* ══════════════════════════════════════════════════
    状態
 ══════════════════════════════════════════════════ */
-let GAS_URL    = localStorage.getItem(LS_GAS_URL) || '';
+let GAS_URL    = localStorage.getItem(LS_GAS_URL) || DEFAULT_GAS_URL;
 let questions  = [];   // GASから取得した質問一覧
 let results    = {};   // GASから取得した集計 { qid: [[g0o0,...],[g1o0,...],...] }
 let selectedGen = null;
@@ -455,6 +673,10 @@ let myAnswers   = JSON.parse(localStorage.getItem(LS_ANSWERS) || '{}');
 let mode        = 'answer';
 let editingId   = null;
 let chartMap    = {};
+
+/* 会員状態 */
+let sessionId  = localStorage.getItem(LS_SESSION) || '';
+let currentUser = null; // { nickname, mustChangePassword } | null
 
 /* ══════════════════════════════════════════════════
    GAS URL 管理
@@ -484,7 +706,7 @@ function checkGasUrl() {
 function openGasModal() {
   document.getElementById('gasUrlInput').value = GAS_URL || '';
   document.getElementById('gasUrlStatus').textContent = '';
-  document.getElementById('btnClearUrl').style.display = GAS_URL ? '' : 'none';
+  document.getElementById('btnClearUrl').style.display = localStorage.getItem(LS_GAS_URL) ? '' : 'none';
   document.getElementById('gasModalBg').classList.add('open');
   setTimeout(() => document.getElementById('gasUrlInput').focus(), 50);
 }
@@ -506,13 +728,13 @@ function saveGasUrl() {
   loadFromGas();
 }
 function clearGasUrl() {
-  if (!confirm('GAS URL の設定を削除しますか？')) return;
-  GAS_URL = '';
+  if (!confirm('カスタム設定を削除して、埋め込み済みのデフォルトURLに戻しますか？')) return;
+  GAS_URL = DEFAULT_GAS_URL;
   localStorage.removeItem(LS_GAS_URL);
   questions = []; results = {};
   closeGasModal();
   checkGasUrl();
-  renderAll();
+  loadFromGas();
 }
 
 /* ══════════════════════════════════════════════════
@@ -521,7 +743,10 @@ function clearGasUrl() {
 // GASはブラウザからのPOSTのCORSを通過できないため、すべてGETで通信する
 async function gasCall(params) {
   const url = new URL(GAS_URL);
-  Object.entries(params).forEach(([k,v]) => {
+  const full = { ...params };
+  // ログイン中は自動的に sessionId を付与（明示的に渡された場合は上書きしない）
+  if (sessionId && full.sessionId === undefined) full.sessionId = sessionId;
+  Object.entries(full).forEach(([k,v]) => {
     if (v !== null && v !== undefined) url.searchParams.set(k, String(v));
   });
   const res = await fetch(url.toString());
@@ -584,10 +809,10 @@ function setMode(m) {
   mode = m;
   document.getElementById('tabAnswer').classList.toggle('active', m==='answer');
   document.getElementById('tabEdit').classList.toggle('active',   m==='edit');
-  document.getElementById('btnAddQ').style.display      = m==='edit' ? '' : 'none';
   document.getElementById('btnResetData').style.display = m==='edit' ? '' : 'none';
   document.getElementById('btnResetAnswers').style.display = m==='answer' ? '' : 'none';
   document.getElementById('progressWrap').classList.toggle('show', m==='answer');
+  updateAuthUI(); // btnAddQ の表示はログイン状態にも依存するため更新
   renderAll();
 }
 
@@ -660,10 +885,11 @@ function renderAll() {
         <span class="q-title-text">${escHtml(q.title)}</span>
         ${q.badge ? '<span class="gap-badge">🔥 ギャップ度：特大</span>' : ''}
         ${authorBadge}
-        <div class="q-actions${mode==='edit'?' show':''}">
+        ${(mode==='edit' && currentUser && q.authorUid && q.authorUid === currentUser.uid) ? `
+        <div class="q-actions show">
           <button class="qa-btn" onclick="openModal('${q.id}')">✏️ 編集</button>
           <button class="qa-btn del" onclick="deleteQuestion('${q.id}')">🗑 削除</button>
-        </div>
+        </div>` : ''}
       </div>
       <div class="vote-strip">🗳 現在の総投票数：<strong>${total.toLocaleString()}</strong>票</div>
       <div class="q-body">
@@ -761,6 +987,11 @@ function selectGen(idx) {
    投票
 ══════════════════════════════════════════════════ */
 async function castVote(qid, optIdx) {
+  if (!currentUser) {
+    showToast('投票にはログインが必要です');
+    openLoginModal();
+    return;
+  }
   if (selectedGen === null) {
     showToast('まず世代を選んでください！');
     document.getElementById('genSection').scrollIntoView({behavior:'smooth'});
@@ -790,11 +1021,16 @@ async function castVote(qid, optIdx) {
     }, 600);
   }
 
-  // GAS に非同期送信（失敗してもUIは維持）
+  // GAS に非同期送信
   try {
     await gasCall({ action:'castVote', questionId:qid, genIndex:selectedGen, optionIndex:optIdx });
   } catch(e) {
-    showToast('⚠️ サーバーへの送信に失敗しました（ローカルには保存済み）');
+    // サーバー側で重複投票として拒否された場合などはローカルの楽観的更新を取り消す
+    delete myAnswers[qid];
+    localStorage.setItem(LS_ANSWERS, JSON.stringify(myAnswers));
+    if (results[qid]) results[qid][selectedGen][optIdx] = Math.max(0, results[qid][selectedGen][optIdx]-1);
+    renderAll();
+    showToast('⚠️ 投票に失敗しました: ' + e.message);
   }
 }
 
@@ -872,6 +1108,11 @@ async function deleteQuestion(qid) {
    モーダル
 ══════════════════════════════════════════════════ */
 function openModal(qid) {
+  if (!currentUser) {
+    showToast('質問の作成・編集にはログインが必要です');
+    openLoginModal();
+    return;
+  }
   editingId = qid;
   const q   = qid ? questions.find(x=>x.id===qid) : null;
 
@@ -1031,11 +1272,288 @@ function escHtml(s) {
 }
 
 /* ══════════════════════════════════════════════════
+   会員機能
+══════════════════════════════════════════════════ */
+function togglePw(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
+}
+
+function updateAuthUI() {
+  const out = document.getElementById('authBarLoggedOut');
+  const inn = document.getElementById('authBarLoggedIn');
+  if (currentUser) {
+    out.style.display = 'none';
+    inn.style.display = '';
+    document.getElementById('userChipName').textContent = currentUser.nickname;
+  } else {
+    out.style.display = '';
+    inn.style.display = 'none';
+  }
+  // 質問追加ボタンはログイン中のみ有効（編集モード時）
+  const btnAddQ = document.getElementById('btnAddQ');
+  if (btnAddQ) btnAddQ.style.display = (mode==='edit' && currentUser) ? '' : 'none';
+}
+
+/* ── セッション復元（ページ読み込み時） ── */
+async function restoreSession() {
+  if (!sessionId || !GAS_URL) return;
+  try {
+    const s = await gasCall({ action:'getSession' });
+    if (s.valid) {
+      currentUser = { uid: s.uid, nickname: s.nickname, mustChangePassword: s.mustChangePassword };
+      updateAuthUI();
+      if (s.mustChangePassword) openChangePwModal(true);
+    } else {
+      clearSession();
+    }
+  } catch(e) {
+    clearSession();
+  }
+}
+
+function clearSession() {
+  sessionId = '';
+  currentUser = null;
+  localStorage.removeItem(LS_SESSION);
+  updateAuthUI();
+}
+
+/* ── ログイン ── */
+function openLoginModal() {
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginErr').classList.remove('show');
+  document.getElementById('loginModalBg').classList.add('open');
+}
+function closeLoginModal() { document.getElementById('loginModalBg').classList.remove('open'); }
+
+async function doLogin() {
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl    = document.getElementById('loginErr');
+  errEl.classList.remove('show');
+  if (!email || !password) {
+    errEl.textContent = 'メールアドレスとパスワードを入力してください';
+    errEl.classList.add('show');
+    return;
+  }
+  showSpinner('ログイン中…');
+  try {
+    const data = await gasCall({ action:'login', email, password, sessionId:'' });
+    sessionId = data.sessionId;
+    localStorage.setItem(LS_SESSION, sessionId);
+    currentUser = { uid: data.uid, nickname: data.nickname, mustChangePassword: data.mustChangePassword };
+    updateAuthUI();
+    closeLoginModal();
+    if (data.mustChangePassword) {
+      openChangePwModal(true);
+    } else {
+      showToast(`${data.nickname} さん、ログインしました ✓`);
+    }
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+  } finally {
+    hideSpinner();
+  }
+}
+
+async function doLogout() {
+  showSpinner('ログアウト中…');
+  try {
+    await gasCall({ action:'logout' });
+  } catch(e) { /* 通信に失敗してもローカルはログアウトする */ }
+  clearSession();
+  hideSpinner();
+  renderAll();
+  showToast('ログアウトしました');
+}
+
+/* ── 会員登録 ── */
+function openRegisterModal() {
+  document.getElementById('regNickname').value = '';
+  document.getElementById('regEmail').value = '';
+  document.getElementById('registerErr').classList.remove('show');
+  document.getElementById('registerModalBg').classList.add('open');
+}
+function closeRegisterModal() { document.getElementById('registerModalBg').classList.remove('open'); }
+
+async function doRegister() {
+  const nickname = document.getElementById('regNickname').value.trim();
+  const email    = document.getElementById('regEmail').value.trim();
+  const errEl    = document.getElementById('registerErr');
+  errEl.classList.remove('show');
+  if (!nickname || !email) {
+    errEl.textContent = 'ニックネームとメールアドレスを入力してください';
+    errEl.classList.add('show');
+    return;
+  }
+  showSpinner('登録中…');
+  try {
+    await gasCall({ action:'register', nickname, email });
+    closeRegisterModal();
+    showToast('登録しました。仮パスワードをメールで送信しました ✓');
+    openLoginModal();
+    document.getElementById('loginEmail').value = email;
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+  } finally {
+    hideSpinner();
+  }
+}
+
+/* ── パスワードをお忘れの方 ── */
+function openForgotModal() {
+  document.getElementById('forgotEmail').value = '';
+  document.getElementById('forgotErr').classList.remove('show');
+  document.getElementById('forgotModalBg').classList.add('open');
+}
+function closeForgotModal() { document.getElementById('forgotModalBg').classList.remove('open'); }
+
+async function doForgotPassword() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  const errEl = document.getElementById('forgotErr');
+  errEl.classList.remove('show');
+  if (!email) {
+    errEl.textContent = 'メールアドレスを入力してください';
+    errEl.classList.add('show');
+    return;
+  }
+  showSpinner('送信中…');
+  try {
+    await gasCall({ action:'forgotPassword', email, sessionId:'' });
+    closeForgotModal();
+    showToast('登録済みのメールアドレス宛に仮パスワードを送信しました ✓');
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+  } finally {
+    hideSpinner();
+  }
+}
+
+/* ── パスワード変更（初回ログイン時は必須・任意変更にも共用） ── */
+let changePwMandatory = false;
+function openChangePwModal(mandatory) {
+  changePwMandatory = !!mandatory;
+  document.getElementById('newPassword').value = '';
+  document.getElementById('changePwErr').classList.remove('show');
+  document.getElementById('changePwNotice').style.display = mandatory ? '' : 'none';
+  document.getElementById('changePwCloseBtn').style.display = mandatory ? 'none' : '';
+  document.getElementById('changePwCancelBtn').style.display = mandatory ? 'none' : '';
+  document.getElementById('changePwModalBg').classList.add('open');
+}
+function closeChangePwModal() {
+  if (changePwMandatory) return; // 初回変更は閉じられない
+  document.getElementById('changePwModalBg').classList.remove('open');
+}
+
+async function doChangePassword() {
+  const newPassword = document.getElementById('newPassword').value;
+  const errEl = document.getElementById('changePwErr');
+  errEl.classList.remove('show');
+  if (newPassword.length < 8) {
+    errEl.textContent = 'パスワードは8文字以上にしてください';
+    errEl.classList.add('show');
+    return;
+  }
+  showSpinner('変更中…');
+  try {
+    await gasCall({ action:'changePassword', newPassword });
+    if (currentUser) currentUser.mustChangePassword = false;
+    document.getElementById('changePwModalBg').classList.remove('open');
+    showToast('パスワードを変更しました ✓');
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+  } finally {
+    hideSpinner();
+  }
+}
+
+/* ── アカウント設定 ── */
+function openAccountModal() {
+  document.getElementById('accountNicknameDisp').textContent = currentUser ? currentUser.nickname : '';
+  document.getElementById('nicknameEditWrap').style.display = 'none';
+  document.getElementById('deleteAccountWrap').style.display = 'none';
+  document.getElementById('accountModalBg').classList.add('open');
+}
+function closeAccountModal() { document.getElementById('accountModalBg').classList.remove('open'); }
+
+function openNicknameEdit() {
+  document.getElementById('accountNicknameInput').value = currentUser ? currentUser.nickname : '';
+  document.getElementById('nicknameErr').classList.remove('show');
+  document.getElementById('nicknameEditWrap').style.display = '';
+}
+
+async function doUpdateNickname() {
+  const nickname = document.getElementById('accountNicknameInput').value.trim();
+  const errEl = document.getElementById('nicknameErr');
+  errEl.classList.remove('show');
+  if (!nickname) {
+    errEl.textContent = 'ニックネームを入力してください';
+    errEl.classList.add('show');
+    return;
+  }
+  showSpinner('保存中…');
+  try {
+    await gasCall({ action:'updateNickname', nickname });
+    currentUser.nickname = nickname;
+    updateAuthUI();
+    document.getElementById('accountNicknameDisp').textContent = nickname;
+    document.getElementById('nicknameEditWrap').style.display = 'none';
+    showToast('ニックネームを変更しました ✓');
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+  } finally {
+    hideSpinner();
+  }
+}
+
+function openDeleteAccountConfirm() {
+  document.getElementById('deleteAccountPassword').value = '';
+  document.getElementById('deleteAccountErr').classList.remove('show');
+  document.getElementById('deleteAccountWrap').style.display = '';
+}
+
+async function doDeleteAccount() {
+  const password = document.getElementById('deleteAccountPassword').value;
+  const errEl = document.getElementById('deleteAccountErr');
+  errEl.classList.remove('show');
+  if (!password) {
+    errEl.textContent = 'パスワードを入力してください';
+    errEl.classList.add('show');
+    return;
+  }
+  if (!confirm('本当に退会しますか？この操作は元に戻せません。')) return;
+  showSpinner('処理中…');
+  try {
+    await gasCall({ action:'deleteAccount', password });
+    closeAccountModal();
+    clearSession();
+    renderAll();
+    showToast('退会が完了しました');
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+  } finally {
+    hideSpinner();
+  }
+}
+
+/* ══════════════════════════════════════════════════
    初期化
 ══════════════════════════════════════════════════ */
-(function init() {
+(async function init() {
+  updateAuthUI();
   checkGasUrl();
   if (GAS_URL) {
+    await restoreSession();
     loadFromGas();
   } else {
     // URL 未設定時はセットアップバナーのみ表示
