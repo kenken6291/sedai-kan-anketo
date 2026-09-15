@@ -280,7 +280,7 @@ footer{text-align:center;padding:24px;font-size:11px;color:var(--ink-mute);lette
 <body>
 
 <header>
-  <p class="eyebrow">世代別意識調査 2025</p>
+  <p class="eyebrow">世代別意識調査</p>
   <h1>これ、どう思う？</h1>
   <p>世代が違えば、常識も違う。あなたの感覚を教えてください。</p>
 </header>
@@ -829,11 +829,6 @@ function selectGen(idx) {
    投票
 ══════════════════════════════════════════════════ */
 async function castVote(qid, optIdx) {
-  if (!currentUser) {
-    showToast('投票にはログインが必要です');
-    openLoginModal();
-    return;
-  }
   if (selectedGen === null) {
     showToast('まず世代を選んでください！');
     document.getElementById('genSection').scrollIntoView({behavior:'smooth'});
