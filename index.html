@@ -27,61 +27,6 @@ header{background:var(--ink);color:#fff;padding:28px 24px 22px;text-align:center
 header h1{font-size:clamp(22px,4vw,34px);font-weight:900;letter-spacing:-.02em;line-height:1.2}
 header p{margin-top:8px;font-size:13px;color:rgba(255,255,255,.5)}
 
-/* ── GAS 接続状態バー ── */
-#gasBanner{
-  padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  font-size:13px;font-weight:700;border-bottom:2px solid;
-}
-#gasBanner.unset{background:#fffbe6;border-color:#f7c948;color:#7a6200}
-#gasBanner.ok   {background:#edfaf4;border-color:#2BAB6F;color:#1a6640}
-#gasBanner.err  {background:#fff0ee;border-color:var(--accent);color:#a03020}
-#gasBanner .gas-url-preview{
-  flex:1;font-size:11px;font-weight:400;opacity:.7;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;
-}
-.gas-setting-btn{
-  border:1.5px solid currentColor;background:transparent;border-radius:7px;
-  padding:5px 13px;cursor:pointer;font-size:12px;font-weight:700;
-  color:inherit;white-space:nowrap;transition:opacity .15s;font-family:var(--font);
-}
-.gas-setting-btn:hover{opacity:.7}
-/* ── GAS 設定モーダル ── */
-#gasModalBg{
-  position:fixed;inset:0;background:rgba(26,23,20,.55);z-index:600;
-  display:flex;align-items:center;justify-content:center;padding:16px;
-  opacity:0;pointer-events:none;transition:opacity .2s;
-}
-#gasModalBg.open{opacity:1;pointer-events:all}
-.gas-modal{
-  background:var(--surface);border-radius:16px;width:100%;max-width:520px;
-  box-shadow:0 8px 40px rgba(0,0,0,.2);
-  transform:translateY(20px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);
-}
-#gasModalBg.open .gas-modal{transform:translateY(0)}
-.gas-modal-head{
-  padding:20px 24px 16px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.gas-modal-head h2{font-size:17px;font-weight:900}
-.gas-modal-body{padding:20px 24px 8px;display:flex;flex-direction:column;gap:14px}
-.gas-modal-body p{font-size:13px;color:var(--ink-mute);line-height:1.7}
-.gas-url-input{
-  width:100%;border:1.5px solid var(--border);border-radius:9px;padding:11px 14px;
-  font-family:var(--font);font-size:13px;color:var(--ink);background:var(--bg);
-  outline:none;transition:border-color .15s;
-}
-.gas-url-input:focus{border-color:var(--accent2)}
-.gas-modal-steps{
-  background:var(--bg);border-radius:10px;padding:14px 16px;
-  font-size:12px;color:var(--ink-mute);line-height:2;
-}
-.gas-modal-steps ol{padding-left:18px}
-.gas-modal-footer{
-  padding:16px 24px 20px;border-top:1px solid var(--border);
-  display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:8px;
-}
-.gas-modal-footer-right{display:flex;gap:10px}
-
 /* ── Toolbar ── */
 .toolbar{
   position:sticky;top:0;z-index:200;
@@ -356,53 +301,12 @@ footer{text-align:center;padding:24px;font-size:11px;color:var(--ink-mute);lette
   </div>
 </div>
 
-<!-- GAS 接続状態バー（常時表示） -->
-<div id="gasBanner" class="unset">
-  <span id="gasBannerIcon">⚠️</span>
-  <span id="gasBannerMsg">GAS Web App の URL が未設定です</span>
-  <span class="gas-url-preview" id="gasUrlPreview"></span>
-  <button class="gas-setting-btn" onclick="openGasModal()">⚙️ GAS を設定する</button>
-</div>
-
 <!-- 通信エラー表示 -->
 <div class="error-banner" id="errorBanner">
   <span id="errorMsg">エラーが発生しました</span>
   <button onclick="retryLoad()">再試行</button>
 </div>
 
-<!-- GAS 設定モーダル -->
-<div id="gasModalBg">
-  <div class="gas-modal">
-    <div class="gas-modal-head">
-      <h2>⚙️ GAS Web App の接続設定</h2>
-      <button class="modal-close" onclick="closeGasModal()">✕</button>
-    </div>
-    <div class="gas-modal-body">
-      <div class="gas-modal-steps">
-        <ol>
-          <li>Google スプレッドシートを新規作成する</li>
-          <li>「拡張機能」→「Apps Script」を開き、<code>gas.js</code> を貼り付ける</li>
-          <li>「プロジェクトの設定」→「スクリプト プロパティ」で <code>SS_ID</code>（スプレッドシートID）と <code>PEPPER</code>（好きな長い文字列。パスワードのハッシュ化に使用）を追加する</li>
-          <li><code>initSheets</code> 関数を手動実行してシートを初期化する（会員登録メール送信の許可を求められたら承認する）</li>
-          <li>「デプロイ」→「新しいデプロイ」→ 種類：<strong>ウェブアプリ</strong></li>
-          <li>アクセスできるユーザー：<strong>全員</strong> → デプロイ</li>
-          <li>発行された <strong>Web App URL</strong> を下に貼り付けて保存</li>
-        </ol>
-      </div>
-      <p>Web App URL を貼り付けてください：</p>
-      <input class="gas-url-input" id="gasUrlInput" type="url"
-             placeholder="https://script.google.com/macros/s/XXXXXX/exec"/>
-      <p id="gasUrlStatus" style="font-size:12px;min-height:18px"></p>
-    </div>
-    <div class="gas-modal-footer">
-      <button class="tb-btn danger" id="btnClearUrl" onclick="clearGasUrl()" style="display:none">🗑 URL を削除</button>
-      <div class="gas-modal-footer-right">
-        <button class="btn-cancel" onclick="closeGasModal()">キャンセル</button>
-        <button class="btn-save" onclick="saveGasUrl()">保存して接続</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ログインモーダル -->
 <div class="modal-bg" id="loginModalBg">
@@ -657,15 +561,13 @@ footer{text-align:center;padding:24px;font-size:11px;color:var(--ink-mute);lette
 const GENS       = ['10代・20代','30代・40代','50代・60代','70代以上'];
 const GEN_COLORS = ['#E05C3A','#3A7BE0','#2BAB6F','#9B59D0'];
 const GEN_EMOJIS = ['🎮','💼','🏠','🌸'];
-const LS_GAS_URL = 'sedai_gas_url';   // GAS URL 保存キー
-const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxbFpyQ4CyM2Ft9K5b8VSeI94bp83l0i2pP23qZa98v8LbhL7EmyWA0zYRicO4aT1HA7g/exec';
+const GAS_URL    = 'https://script.google.com/macros/s/AKfycbxbFpyQ4CyM2Ft9K5b8VSeI94bp83l0i2pP23qZa98v8LbhL7EmyWA0zYRicO4aT1HA7g/exec';
 const LS_ANSWERS = 'sedai_my_answers';// 自分の回答（ローカル保存）
 const LS_SESSION = 'sedai_session_id';// ログインセッションID保存キー
 
 /* ══════════════════════════════════════════════════
    状態
 ══════════════════════════════════════════════════ */
-let GAS_URL    = localStorage.getItem(LS_GAS_URL) || DEFAULT_GAS_URL;
 let questions  = [];   // GASから取得した質問一覧
 let results    = {};   // GASから取得した集計 { qid: [[g0o0,...],[g1o0,...],...] }
 let selectedGen = null;
@@ -677,65 +579,6 @@ let chartMap    = {};
 /* 会員状態 */
 let sessionId  = localStorage.getItem(LS_SESSION) || '';
 let currentUser = null; // { nickname, mustChangePassword } | null
-
-/* ══════════════════════════════════════════════════
-   GAS URL 管理
-══════════════════════════════════════════════════ */
-/* ── GAS 接続バナー更新 ── */
-function updateGasBanner(state, msg, urlPreview) {
-  const b   = document.getElementById('gasBanner');
-  const ico = document.getElementById('gasBannerIcon');
-  const txt = document.getElementById('gasBannerMsg');
-  const pre = document.getElementById('gasUrlPreview');
-  b.className = state; // 'unset' | 'ok' | 'err'
-  ico.textContent = state==='ok' ? '✅' : state==='err' ? '❌' : '⚠️';
-  txt.textContent = msg;
-  pre.textContent = urlPreview || '';
-}
-
-function checkGasUrl() {
-  if (!GAS_URL) {
-    updateGasBanner('unset','GAS Web App の URL が未設定です — 右の「⚙️ GAS を設定する」ボタンを押してください','');
-    return false;
-  }
-  updateGasBanner('ok','GAS に接続済み', GAS_URL);
-  return true;
-}
-
-/* ── GAS 設定モーダル ── */
-function openGasModal() {
-  document.getElementById('gasUrlInput').value = GAS_URL || '';
-  document.getElementById('gasUrlStatus').textContent = '';
-  document.getElementById('btnClearUrl').style.display = localStorage.getItem(LS_GAS_URL) ? '' : 'none';
-  document.getElementById('gasModalBg').classList.add('open');
-  setTimeout(() => document.getElementById('gasUrlInput').focus(), 50);
-}
-function closeGasModal() {
-  document.getElementById('gasModalBg').classList.remove('open');
-}
-function saveGasUrl() {
-  const val = document.getElementById('gasUrlInput').value.trim();
-  const status = document.getElementById('gasUrlStatus');
-  if (!val.startsWith('https://script.google.com')) {
-    status.style.color = 'var(--accent)';
-    status.textContent = '⚠️ 「https://script.google.com」で始まる URL を入力してください';
-    return;
-  }
-  GAS_URL = val;
-  localStorage.setItem(LS_GAS_URL, GAS_URL);
-  closeGasModal();
-  updateGasBanner('ok','GAS に接続済み', GAS_URL);
-  loadFromGas();
-}
-function clearGasUrl() {
-  if (!confirm('カスタム設定を削除して、埋め込み済みのデフォルトURLに戻しますか？')) return;
-  GAS_URL = DEFAULT_GAS_URL;
-  localStorage.removeItem(LS_GAS_URL);
-  questions = []; results = {};
-  closeGasModal();
-  checkGasUrl();
-  loadFromGas();
-}
 
 /* ══════════════════════════════════════════════════
    GAS 通信レイヤー
@@ -759,7 +602,6 @@ async function gasCall(params) {
    データ読み込み
 ══════════════════════════════════════════════════ */
 async function loadFromGas() {
-  if (!checkGasUrl()) return;
   showSpinner('データを読み込み中…');
   hideError();
   try {
@@ -1235,7 +1077,7 @@ async function saveQuestion() {
 document.getElementById('modalBg').addEventListener('click', e => {
   if (e.target === document.getElementById('modalBg')) closeModal();
 });
-document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeGasModal(); } });
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); } });
 
 /* ══════════════════════════════════════════════════
    UI ユーティリティ
@@ -1299,7 +1141,7 @@ function updateAuthUI() {
 
 /* ── セッション復元（ページ読み込み時） ── */
 async function restoreSession() {
-  if (!sessionId || !GAS_URL) return;
+  if (!sessionId) return;
   try {
     const s = await gasCall({ action:'getSession' });
     if (s.valid) {
@@ -1551,14 +1393,8 @@ async function doDeleteAccount() {
 ══════════════════════════════════════════════════ */
 (async function init() {
   updateAuthUI();
-  checkGasUrl();
-  if (GAS_URL) {
-    await restoreSession();
-    loadFromGas();
-  } else {
-    // URL 未設定時はセットアップバナーのみ表示
-    renderAll();
-  }
+  await restoreSession();
+  await loadFromGas();
   setMode('answer');
 })();
 </script>
